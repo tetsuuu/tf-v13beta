@@ -53,3 +53,27 @@ module "for_each_group" {
     default = module.gengeral_policy.default_policy
   }
 }
+
+// sops用KMSキー
+resource "aws_kms_key" "sops" {
+  description             = "For sops key"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+}
+
+resource "aws_kms_alias" "sops" {
+  target_key_id = aws_kms_key.sops.id
+  name          = "alias/sopsKey"
+}
+
+// sopsを利用したcredentialのパラメーターストアへの格納
+resource "aws_ssm_parameter" "demo_credential" {
+  name   = "demo-credential"
+  type   = "SecureString"
+  key_id = "alias/aws/ssm"
+  value  = data.sops_file.demo_credential.data["demo_credential"]
+}
+
+output "sops_key" {
+  value = aws_kms_key.sops.arn
+}
